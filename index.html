@@ -330,6 +330,7 @@
                     osc.stop(now + 0.15);
                 } else if (type === 'levelup') {
                     gain.gain.value = 0.1;
+                    gain.connect(audioCtx.destination);
                     // 簡單的和弦音效
                     [440, 554, 659, 880].forEach((freq, i) => {
                         const o = audioCtx.createOscillator();
@@ -765,15 +766,15 @@
                 div.className = 'upgrade-card';
                 div.innerHTML = `<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
                 div.onclick = () => {
-                    u.func();
-                    document.getElementById('levelup-screen').classList.add('hidden');
-                    gameState.status = 'PLAYING';
-                    lastTime = performance.now();
-                    updateHUD();
-                };
-                container.appendChild(div);
-            });
-
+    u.func();
+    document.getElementById('levelup-screen').classList.add('hidden');
+    gameState.status = 'PLAYING';
+    lastTime = performance.now(); // 重置時間，避免暫停期間累積巨大的 dt
+    updateHUD();
+    
+    // ★★★ 新增這一行來重啟遊戲迴圈 ★★★
+    requestAnimationFrame(animate); 
+};
             document.getElementById('levelup-screen').classList.remove('hidden');
         }
 
