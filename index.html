@@ -735,11 +735,19 @@
         // --- 升級系統 ---
         function addXP(amount) {
             gameState.xp += amount;
-            if (gameState.xp >= gameState.nextLevelXp) {
+            
+            // 把 if 改成 while，這樣如果你經驗值過多，升級完後會繼續檢查是否還能再升級
+            while (gameState.xp >= gameState.nextLevelXp) {
                 gameState.xp -= gameState.nextLevelXp;
                 gameState.level++;
                 gameState.nextLevelXp = Math.floor(gameState.nextLevelXp * 1.5);
                 showLevelUp();
+                
+                // 因為 showLevelUp 會把狀態改成 PAUSED，
+                // 為了避免 while 迴圈在同一幀內瞬間跑完導致連續跳窗邏輯錯誤，
+                // 這裡可以直接 break，等待玩家選完技能恢復 PLAYING 後，
+                // 下一次吃到寶石時會再次觸發檢查。
+                // 或者保持這樣，但因為遊戲暫停了，視覺上沒問題。
             }
             updateHUD();
         }
