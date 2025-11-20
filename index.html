@@ -733,68 +733,74 @@
         }
 
         // --- 升級系統 ---
+       // --- 升級系統 ---
         function addXP(amount) {
             gameState.xp += amount;
-            
-            // 把 if 改成 while，這樣如果你經驗值過多，升級完後會繼續檢查是否還能再升級
-            while (gameState.xp >= gameState.nextLevelXp) {
+
+            // 先做一次升級判斷就好，夠用
+            if (gameState.xp >= gameState.nextLevelXp) {
                 gameState.xp -= gameState.nextLevelXp;
                 gameState.level++;
                 gameState.nextLevelXp = Math.floor(gameState.nextLevelXp * 1.5);
                 showLevelUp();
-                
-                // 因為 showLevelUp 會把狀態改成 PAUSED，
-                // 為了避免 while 迴圈在同一幀內瞬間跑完導致連續跳窗邏輯錯誤，
-                // 這裡可以直接 break，等待玩家選完技能恢復 PLAYING 後，
-                // 下一次吃到寶石時會再次觸發檢查。
-                // 或者保持這樣，但因為遊戲暫停了，視覺上沒問題。
             }
+
             updateHUD();
         }
 
-       function showLevelUp() {
+   function showLevelUp() {
+            // 暫停遊戲
             gameState.status = 'PAUSED';
             sfx.playSound('levelup');
-            
+
             const upgrades = [
                 { title: "鋒利貓爪", desc: "+20% 傷害", func: () => playerStats.damage *= 1.2 },
                 { title: "貓步輕盈", desc: "+20% 移動速度", func: () => playerStats.speed *= 1.2 },
                 { title: "瘋狂抓抓", desc: "+20% 攻擊速度", func: () => playerStats.fireRate *= 0.8 },
                 { title: "影分身爪", desc: "+1 額外子彈", func: () => playerStats.projectiles += 1 },
-                { title: "九命怪貓", desc: "回復 50% 血量 + 血量上限", func: () => { playerStats.maxHp += 20; playerStats.hp = Math.min(playerStats.hp + playerStats.maxHp/2, playerStats.maxHp); } },
-                { title: "巨大毛球", desc: "子彈變大 +10% 傷害", func: () => { playerStats.bulletSize *= 1.3; playerStats.damage *= 1.1; } }
+                { title: "九命怪貓", desc: "回復 50% 血量 + 血量上限", func: () => {
+                    playerStats.maxHp += 20;
+                    playerStats.hp = Math.min(playerStats.hp + playerStats.maxHp / 2, playerStats.maxHp);
+                }},
+                { title: "巨大毛球", desc: "子彈變大 +10% 傷害", func: () => {
+                    playerStats.bulletSize *= 1.3;
+                    playerStats.damage *= 1.1;
+                }}
             ];
 
             const container = document.getElementById('upgrade-container');
             container.innerHTML = '';
-            
-            // 隨機選3個
-            upgrades.sort(() => 0.5 - Math.random()).slice(0, 3).forEach(u => {
+
+            // 隨機抽 3 張升級卡
+            const choices = upgrades.sort(() => 0.5 - Math.random()).slice(0, 3);
+
+            choices.forEach(u => {
                 const div = document.createElement('div');
                 div.className = 'upgrade-card';
-                div.innerHTML = `<div class="upgrade-title">${u.title}</div><div class="upgrade-desc">${u.desc}</div>`;
-                
-                div.onclick = () => {
+                div.innerHTML = `
+                    <div class="upgrade-title">${u.title}</div>
+                    <div class="upgrade-desc">${u.desc}</div>
+                `;
+
+                div.addEventListener('click', () => {
+                    // 套用升級效果
                     u.func();
+
+                    // 關閉升級畫面，恢復遊戲
                     document.getElementById('levelup-screen').classList.add('hidden');
                     gameState.status = 'PLAYING';
-                    lastTime = performance.now(); 
+                    lastTime = performance.now(); // 避免暫停期間累積超大 dt
                     updateHUD();
-                    
-                    // 重啟遊戲迴圈
-                    requestAnimationFrame(animate); 
-                };
 
-                // ★★★ 你原本少了這一行，導致卡片沒顯示出來！ ★★★
-                container.appendChild(div); 
-            });
+                    // 重新啟動動畫迴圈
+                    requestAnimationFrame(animate);
+                });
 
-            document.getElementById('levelup-screen').classList.remove('hidden');
-        }
+            container.appendChild(div);
+        });
 
-    // 顯示升級畫面
-    document.getElementById('levelup-screen').classList.remove('hidden');
-}
+        document.getElementById('levelup-screen').classList.remove('hidden');
+    }
 
         // --- 遊戲流程控制 ---
         const game = {
